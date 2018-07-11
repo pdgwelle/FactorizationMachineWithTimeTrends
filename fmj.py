@@ -7,16 +7,13 @@ class FlashMobJunior:
         self.k = k
         pass
 
-    def _compute_low_rank_interactions(self, X, X2, Vs):
-        Vs2 = Vs*Vs
+    def _compute_low_rank_interactions_slow(self, X, Vs):
+        W = np.matmul(Vs,np.transpose(Vs))
 
         running_sum = 0
-        for k_index in range(self.k):
-            Vs_k = Vs[:,k_index]
-            Vs2_k = Vs2[:,k_index]
-
-            value = np.sum((Vs_k * X)**2 - (Vs2_k * X2), axis=1)
-            running_sum += value
+        for i in range(len(W)):
+            for j in range(len(W)):
+                running_sum+=W[i,j]*X[:,i]*X[:,j]
 
         return running_sum
 
@@ -30,7 +27,7 @@ class FlashMobJunior:
         Vs = Vs_unformed.reshape(n_features, self.k)
 
         # calculate y_hat and p
-        y_hat = B0 + np.sum(np.multiply(Bs ,X), axis=1) + self._compute_low_rank_interactions(X,X2,Vs)
+        y_hat = B0 + np.sum(np.multiply(Bs ,X), axis=1) + self._compute_low_rank_interactions_slow(X,Vs)
         p = 1 / (1 + np.exp(-y_hat))
 
         return p
