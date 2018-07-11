@@ -48,12 +48,14 @@ class FlashMobJunior:
         
         return loss
 
+
+
     def fit(self, X, y):
         n_features = X.shape[1]
 
         # generate random initalizations
-        Bs = np.random.rand(n_features+1)
-        Vs = np.random.rand(n_features, self.k)
+        Bs = np.random.rand(n_features+1) - 0.5
+        Vs = np.random.rand(n_features, self.k) - 0.5
         theta0 = np.append(Bs, Vs)
 
         # minimize!
