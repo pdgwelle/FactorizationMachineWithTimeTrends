@@ -12,12 +12,12 @@ class FlashMobJunior:
 
         running_sum = 0
         for i in range(len(W)):
-            for j in range(len(W)):
+            for j in range(i+1,len(W)):
                 running_sum+=W[i,j]*X[:,i]*X[:,j]
 
         return running_sum
 
-    def _model_equation(self, X, X2, theta):
+    def _model_equation(self, X, theta):
         n_features = X.shape[1]
 
         # unpack theta into model paramaeters
@@ -28,18 +28,20 @@ class FlashMobJunior:
 
         # calculate y_hat and p
         y_hat = B0 + np.sum(np.multiply(Bs ,X), axis=1) + self._compute_low_rank_interactions_slow(X,Vs)
-        p = 1 / (1 + np.exp(-y_hat))
+        probs = 1 / (1 + np.exp(-y_hat))
 
-        return p
+        probs[probs==0.0]+=0.001
+        probs[probs==1.0]-=0.001
+
+        return probs
 
     def _obj_function(self, theta, *args):
         # unpack data
         X = args[0]
-        X2 = args[1]
-        y = args[2]
+        y = args[1]
         
         # predict p given theta
-        p = self._model_equation(X,X2,theta)
+        p = self._model_equation(X,theta)
 
         # cross entropy loss
         loss = np.mean(-y*np.log(p) + (1-y)*np.log(1-p))
@@ -47,9 +49,6 @@ class FlashMobJunior:
         return loss
 
     def fit(self, X, y):
-        # precompute X squared for speed
-        X2 = X**2
-
         n_features = X.shape[1]
 
         # generate random initalizations
@@ -58,14 +57,12 @@ class FlashMobJunior:
         theta0 = np.append(Bs, Vs)
 
         # minimize!
-        self.solution = scipy.optimize.minimize(self._obj_function, theta0, args=(X,X2,y))
+        self.solution = scipy.optimize.minimize(self._obj_function, theta0, args=(X,y))
 
-    def predict(self, X, threshold = 0.5):
-        X2 = X**2
+    def predict_proba(self, X, threshold = 0.5):
         theta = self.solution.x
         
-        p = self._model_equation(X, X2, theta)
-        
+        p = self._model_equation(X, theta)
         return p
         # y = np.array([0]*len(p))
         # y[p>0.5] = 1
