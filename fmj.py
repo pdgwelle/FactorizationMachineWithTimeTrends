@@ -44,11 +44,9 @@ class FlashMobJunior:
         p = self._model_equation(X,theta)
 
         # cross entropy loss
-        loss = np.mean(-y*np.log(p) + (1-y)*np.log(1-p))
+        loss = -np.mean(y*np.log(p) + (1-y)*np.log(1-p))
         
         return loss
-
-
 
     def fit(self, X, y):
         n_features = X.shape[1]
@@ -57,15 +55,18 @@ class FlashMobJunior:
         Bs = np.random.rand(n_features+1) - 0.5
         Vs = np.random.rand(n_features, self.k) - 0.5
         theta0 = np.append(Bs, Vs)
+        self.theta0 = theta0
 
         # minimize!
         self.solution = scipy.optimize.minimize(self._obj_function, theta0, args=(X,y))
 
-    def predict_proba(self, X, threshold = 0.5):
+    def predict_proba(self, X):
         theta = self.solution.x
-        
         p = self._model_equation(X, theta)
         return p
-        # y = np.array([0]*len(p))
-        # y[p>0.5] = 1
-        # return y
+
+    def predict(self, X, threshold):
+        p = self.predict_proba(X)
+        y = np.array([0]*len(p))
+        y[p>0.5] = 1
+        return y
