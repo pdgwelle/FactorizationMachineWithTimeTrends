@@ -3,8 +3,11 @@ import scipy.optimize
 
 class FlashMobJunior:
 
-    def __init__(self, k=4):
+    def __init__(self, time_index, k=4):
         self.k = k
+        self.time_index = time_index
+        self.theta0 = None
+        self.solution = None
         pass
 
     def _compute_low_rank_interactions_slow(self, X, Vs):
@@ -22,9 +25,11 @@ class FlashMobJunior:
 
         # unpack theta into model paramaeters
         B0 = theta[0]
-        Bs = theta[1: n_features+1]
-        Vs_unformed = theta[n_features+1:]
-        Vs = Vs_unformed.reshape(n_features, self.k)
+        Bs = theta[1: self.time_index+1]
+        Vs_unformed = theta[self.time_index+1:(self.time_index+1+self.time_index*self.k)]
+        Vs = Vs_unformed.reshape(self.time_index, self.k)
+        Vst_unformed = theta[(self.time_index+1+self.time_index*self.k):]
+        Vst = Vst_unformed.reshape(n_features, self.k)
 
         # calculate y_hat and p
         y_hat = B0 + np.sum(np.multiply(Bs ,X), axis=1) + self._compute_low_rank_interactions_slow(X,Vs)
@@ -52,9 +57,10 @@ class FlashMobJunior:
         n_features = X.shape[1]
 
         # generate random initalizations
-        Bs = np.random.rand(n_features+1) - 0.5
-        Vs = np.random.rand(n_features, self.k) - 0.5
-        theta0 = np.append(Bs, Vs)
+        Bs = np.random.rand(self.time_index+1) - 0.5
+        Vs = np.random.rand(self.time_index, self.k) - 0.5
+        Vst = np.random.rand(n_features, self.k) - 0.5
+        theta0 = np.concatenate((Bs, np.ravel(Vs), np.ravel(Vst)))
         self.theta0 = theta0
 
         # minimize!
